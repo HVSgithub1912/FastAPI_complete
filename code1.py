@@ -1,4 +1,5 @@
-from fastapi import FastAPI,HTTPException,Path
+from fastapi import FastAPI,HTTPException,Path,Query
+from pydantic import BaseModel,field_validator,computed_field,Field,EmailStr
 import json
 
 app = FastAPI()
@@ -11,9 +12,17 @@ def greet():
 def home():
     return {"Hello harsh! , kaise ho beta"}
 
+#Helper function1
 def get_data():
     with open("students.json","r") as f:
         return json.load(f)
+
+#Helper function2
+def save_data(data):
+    with open("students.json" ,"w") as file:
+        json.dump(data, file, indent=4) #indent 4 keeps the file readable
+
+
 
 @app.get('/student')
 def student():
@@ -22,7 +31,7 @@ def student():
 
 
 
-# student_id is a endpoint
+#student_id is a endpoint
 #Path Parameters
 @app.get('/student/{student_id}')
 def getvid(student_id : str = Path(..., description="This id of the student")):
@@ -90,3 +99,127 @@ def sort_students(
     
     
     
+
+
+
+
+
+
+
+
+
+""" 
+  REQUEST BODY
+
+  Post - data comes in the BODY(a JSON object sent with the request)
+  When a function argument is a pydantic Model, FastAPI reads it from the body
+  and validates automatically, Bad Data -> 422
+   
+"""
+class Student(BaseModel):
+    id      : str = Field(..., examples=["S001"])
+    name    : str = Field(..., min_length=2, max_length=50)
+    age     : int = Field(..., gt=0, le=100)
+    course  : str = Field(..., max_length=50)
+    marks   : int = Field(..., ge=0, le=100)
+    email   : EmailStr
+
+    #Custom Rule : Name must contain only letters and spaces
+    @field_validator("name")#name=Kabir singh
+    @classmethod
+    def check_name(cls, value):
+        if not value.replace(" ", "").isalpha():
+            raise ValueError("Name must contain only letters and spaces")
+        
+        return value.title()
+
+    @computed_field
+    @property
+    def grade(self) -> str:
+        if self.marks >= 90:
+            return "A+"
+        elif self.marks >= 80:
+            return "A"
+        elif self.marks >= 70:
+            return "B"
+        elif self.marks >= 60:
+            return "C"
+        else:
+            return "F"
+
+@app.post('/create', status_code=201)
+def create_student(student: Student):
+    data = get_data()
+    data[student.id] = student.model_dump(exclude = {"id", "grade"})  
+    save_data(data)
+
+    return {"message" : "student created sucessfully", "student": student}
+
+
+
+
+
+#Update any existing data
+class StudentUpdate(BaseModel):
+    name : str| None = Field(None , min_length=2,max_length=20)
+    age  : int|None = Field(None , gt=0 , lt=100)
+    course: str|None = Field(None, max_length=30)
+    marks : int|None = Field(None, ge=0, le=100)
+    email : EmailStr|None = None 
+
+
+@app.put("/update/{student_id}")
+def update_student(
+    student_update : StudentUpdate,
+    student_id : str = Path(...,description="The Id of the student",
+    examples=["S001"])
+):
+    
+    data = get_data()
+    if student_id not in data:
+        raise HTTPException(
+            status_code=404,
+            detail="The provided ID is not present in data"
+        )
+
+    #Step 1: The student as it is right now.
+    existing = data[student_id]
+
+
+    #Step2 : Only the fields the Client actually sent
+    update = student_update.model_dump()
+
+    #step3: Copy the new value on the top of old value
+    for key,value in update.items():
+        existing[key] = value
+
+    #step4: check the final student again
+    student = Student(id=student_id , **existing)
+
+    data[student_id] = student.model_dump(exclude=["id", "grade"])
+    save_data(data)
+
+    return{"message: student updated sucessfully"}
+
+
+
+
+@app.delete("/delete/{student_id}")
+
+def delete_student(
+
+    student_id : str = Path(...,description="The id you wanna delete",
+                            examples=["S001"])
+
+):
+    data = get_data()
+    if student_id not in data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"the provided id {student_id} is not present"
+        )
+    
+    del data[student_id]
+    save_data(data)
+
+    return {"message": f"student '{student_id}' deleted sucessfully"}
