@@ -7,11 +7,11 @@
         "marks": 85
     },
     "S003": {
-        "name": "String",
-        "age": 1,
-        "course": "string",
-        "marks": 100,
-        "email": "user@example.com"
+        "name": "Rohan Verma",
+        "age": 19,
+        "email": "rohan.verma@example.com",
+        "course": "Python",
+        "marks": 67
     },
     "S004": {
         "name": "Ananya Iyer",
@@ -40,12 +40,5 @@
         "course": "JAVA",
         "marks": 88,
         "email": "atharv@example.com"
-    },
-    "S0019": {
-        "name": "String",
-        "age": 13,
-        "course": "politics",
-        "marks": 10,
-        "email": "user@example.com"
     }
 }

@@ -1,8 +1,19 @@
 from fastapi import FastAPI,HTTPException,Path,Query
 from pydantic import BaseModel,field_validator,computed_field,Field,EmailStr
+from fastapi.middleware.cors import CORSMiddleware #CORS - cross origin resource sharing
 import json
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=True,
+    allow_credentials=True, #allow cokkies
+    allow_headers=["*"] # authorization 
+    allow_methods= True
+)
+
+# Method 1
 @app.get('/') #Endpoint : where the message in the url will be displayed is known as endpoint
 def greet():
     return {"Hii good morning bro"}
@@ -10,7 +21,7 @@ def greet():
 
 @app.get('/hello')
 def home():
-    return {"Hello harsh! , kaise ho beta"}
+    return {"Hello harsh!"}
 
 #Helper function1
 def get_data():
@@ -96,18 +107,8 @@ def sort_students(
     sorted_students = sorted(student, key = lambda s:s[sorting_by], reverse=reverse)
     return sorted_students
 
-    
-    
-    
 
-
-
-
-
-
-
-
-
+# Method 2
 """ 
   REQUEST BODY
 
@@ -158,7 +159,7 @@ def create_student(student: Student):
 
 
 
-
+# Method 3
 #Update any existing data
 class StudentUpdate(BaseModel):
     name : str| None = Field(None , min_length=2,max_length=20)
@@ -187,7 +188,7 @@ def update_student(
 
 
     #Step2 : Only the fields the Client actually sent
-    update = student_update.model_dump()
+    update = student_update.model_dump(exclude_unset=True)
 
     #step3: Copy the new value on the top of old value
     for key,value in update.items():
@@ -204,6 +205,7 @@ def update_student(
 
 
 
+# Method 4
 @app.delete("/delete/{student_id}")
 
 def delete_student(
